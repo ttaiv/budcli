@@ -7,10 +7,13 @@ authors = [
     { name = "Teemu Taivainen", email = "teemu.taivainen@hotmail.fi" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pandas>=2.2.3",
+    "typer>=0.15.3",
+]
 
 [project.scripts]
-budcli = "budcli:main"
+bc = "budcli.cli:main"
 
 [build-system]
 requires = ["hatchling"]
