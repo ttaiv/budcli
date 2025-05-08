@@ -1,7 +1,7 @@
 [project]
 name = "budcli"
 version = "0.1.0"
-description = "Add your description here"
+description = "Eats csv bank statements, categorizes transactions, and tracks your budget."
 readme = "README.md"
 authors = [
     { name = "Teemu Taivainen", email = "teemu.taivainen@hotmail.fi" }
