@@ -11,6 +11,9 @@ class RecipientCategoryMapping:
     def __init__(self) -> None:
         # Set path to to file that will be used to load/save the mapping
         self.file_path = Path.home() / ".budcli" / "recipient_categories.json"
+        logger.info(
+            f"Looking for recipient-category mapping file from {self.file_path}"
+        )
         self.recipient_to_category: dict[str, str] = self._load_or_initialize(
             self.file_path
         )
@@ -43,8 +46,11 @@ class RecipientCategoryMapping:
         return list(self.recipient_to_category)
 
     def set_recipient_category(self, recipient: str, category: str):
+        logger.debug(f"Setting category '{category}' for recipient '{recipient}'")
         self.recipient_to_category[recipient] = category
 
     def save_to_file(self):
+        logger.info(f"Saving recipient-category mapping to {self.file_path}")
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.file_path, "w") as f:
             json.dump(self.recipient_to_category, f, indent=4)
