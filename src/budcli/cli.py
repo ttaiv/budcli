@@ -42,15 +42,14 @@ def add_statement(
     new_recipients = statement.get_new_recipients(
         existing_recipients=recipient_to_category.get_recipients()
     )
-    print("New recipients found:")
-    for recipient in new_recipients:
-        print(f" - {recipient}")
+    if new_recipients:
+        logger.info("New recipients found, prompting for categories...")
 
-    # Prompt for new recipients
-    # Add new recipients to mapping
-    # Save mapping
+        for recipient in new_recipients:
+            category = typer.prompt(f"What is the category for recipient {recipient}?")
+            recipient_to_category.set_recipient_category(recipient, category)
 
-    # Do the analysis
+        recipient_to_category.save_to_file()
 
 
 @app.command()

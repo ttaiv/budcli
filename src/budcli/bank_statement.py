@@ -34,7 +34,7 @@ class BankStatement:
         )
         self.recipients = set(self.expense_per_recipient[recipient_col_name].tolist())
 
-    # NOTE: Currently hard coded for danske bank
+    # NOTE: Currently hard coded for s pankki
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
         """
         Preprocess the bank data by converting date columns to datetime format,
