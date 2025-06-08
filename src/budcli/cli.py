@@ -31,7 +31,6 @@ def add_statement(
         level=logging.DEBUG,  # if verbose else logging.INFO,
         format="%(name)s - %(levelname)s - %(message)s",
     )
-    logger.info("Brrr...")
 
     statement = BankStatement(
         file_path, amount_col_name="Summa", recipient_col_name="Saajan nimi"
@@ -50,6 +49,11 @@ def add_statement(
             recipient_to_category.set_recipient_category(recipient, category)
 
         recipient_to_category.save_to_file()
+
+    logger.info("Proceesing to categorize expenses...")
+    expense_per_category = statement.categorize_expenses(recipient_to_category.mapping)
+    print("Expenses categorized by recipient:\n")
+    print(expense_per_category)
 
 
 @app.command()

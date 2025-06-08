@@ -79,18 +79,16 @@ class BankStatement:
 
         return list(new_recipients)
 
-    def categorize_expenses(self, recipient_to_category: dict[str, str]):
+    def categorize_expenses(self, recipient_to_category: dict[str, str]) -> pd.DataFrame:
         expense_per_recipient = self.expense_per_recipient.copy()
 
         expense_per_recipient["Category"] = expense_per_recipient[
             self.recipient_col_name
         ].map(recipient_to_category)
 
-        expense_per_category = (
+        return (
             expense_per_recipient.groupby("Category")[self.amount_col_name]
             .sum()
             .sort_values(ascending=False)
             .reset_index()
         )
-        print("Total expenses per category:")
-        print(expense_per_category)
