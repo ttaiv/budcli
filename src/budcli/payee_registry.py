@@ -34,21 +34,6 @@ class PayeeRegistry(ABC):
             logger.info("Payee info file not found, creating a new registry.")
             self._payee_name_to_payee: dict[str, Payee] = {}
 
-    def _load_from_file(self, payee_info_file: Path) -> dict[str, Payee]:
-        """Load the payee info data from the specified file."""
-        if not payee_info_file.exists():
-            raise FileNotFoundError(
-                f"Payee info file {payee_info_file} does not exist."
-            )
-
-        logger.info(f"Loading payee info from {payee_info_file}")
-        with open(payee_info_file, "r") as f:
-            payees_info_list: list[dict] = json.load(f)
-
-        payees = {payee["name"]: Payee(**payee) for payee in payees_info_list}
-        logger.info(f"Loaded {len(payees)} payees from file.")
-        return payees
-
     def get_payee_names(self) -> list[str]:
         """Return a list of payee names in the registry."""
         return list(self._payee_name_to_payee)
@@ -87,3 +72,18 @@ class PayeeRegistry(ABC):
         self.info_file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.info_file_path, "w") as f:
             json.dump(payees_info_list, f, indent=4)
+
+    def _load_from_file(self, payee_info_file: Path) -> dict[str, Payee]:
+        """Load the payee info data from the specified file."""
+        if not payee_info_file.exists():
+            raise FileNotFoundError(
+                f"Payee info file {payee_info_file} does not exist."
+            )
+
+        logger.info(f"Loading payee info from {payee_info_file}")
+        with open(payee_info_file, "r") as f:
+            payees_info_list: list[dict] = json.load(f)
+
+        payees = {payee["name"]: Payee(**payee) for payee in payees_info_list}
+        logger.info(f"Loaded {len(payees)} payees from file.")
+        return payees
