@@ -1,94 +1,89 @@
 import json
 import logging
-from dataclasses import asdict, dataclass
+from abc import ABC
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class RecipientInfo:
-    """Represents information about a recipient"""
+class Payee(ABC):
+    """Represent a payee in the bank statement."""
 
     name: str
-    category: str | None = None
-    # Whether to always ask the user for the category when a payment for this
-    # recipient is encountered.
+    primary_category: str
+    other_categories: list[str] = field(default_factory=list)
+    # Whether the category of this payee should be confirmed by asking the user
     ask_for_category: bool = False
 
 
-class RecipientRegistry:
-    """A registry for recipient information."""
+class PayeeRegistry(ABC):
+    """Manages information about payees."""
 
     def __init__(self) -> None:
-        # Set path to to file that will be used to load/save the mapping
-        self.file_path = Path.home() / ".budcli" / "recipient_info.json"
-        logger.info(f"Looking for recipient info file from {self.file_path}")
-        self.recipient_to_info: dict[str, RecipientInfo] = self._load_or_initialize(
-            self.file_path
+        # Set path to to file that will be used to load/save payee information.
+        self.info_file_path = Path.home() / ".budcli" / "payee_info.json"
+        logger.info(f"Looking for payee info file from {self.info_file_path}")
+        if self.info_file_path.exists():
+            logger.info(f"Payee info file found at {self.info_file_path}")
+            self._payee_name_to_payee: dict[str, Payee] = self._load_from_file(
+                self.info_file_path
+            )
+        else:
+            logger.info("Payee info file not found, creating a new registry.")
+            self._payee_name_to_payee: dict[str, Payee] = {}
+
+    def _load_from_file(self, payee_info_file: Path) -> dict[str, Payee]:
+        """Load the payee info data from the specified file."""
+        if not payee_info_file.exists():
+            raise FileNotFoundError(
+                f"Payee info file {payee_info_file} does not exist."
+            )
+
+        logger.info(f"Loading payee info from {payee_info_file}")
+        with open(payee_info_file, "r") as f:
+            payees_info_list: list[dict] = json.load(f)
+
+        payees = {payee["name"]: Payee(**payee) for payee in payees_info_list}
+        logger.info(f"Loaded {len(payees)} payees from file.")
+        return payees
+
+    def get_payee_names(self) -> list[str]:
+        """Return a list of payee names in the registry."""
+        return list(self._payee_name_to_payee)
+
+    '''
+
+    def get_payee_category(self, name: str) -> str:
+        """Get the category of a payee by name."""
+        payee = self._payee_name_to_payee[name]
+
+        if isinstance(payee, ConstantCategoryPayee):
+            return payee.category
+        elif isinstance(payee, VariableCategoryPayee):
+            return payee.default_category
+        else:
+            raise TypeError(f"Unknown payee type for {name}.")
+    '''
+
+    def add_payee(self, payee: Payee) -> None:
+        """Add a new payee to the registry."""
+        if payee.name in self._payee_name_to_payee:
+            logger.warning(
+                f"Payee {payee.name} already exists in the registry, not adding it."
+            )
+            return
+        self._payee_name_to_payee[payee.name] = payee
+        logger.debug(
+            f"Added payee {payee.name} with primary category {payee.primary_category}."
         )
 
-    def _load_or_initialize(
-        self, recipient_info_file: Path
-    ) -> dict[str, RecipientInfo]:
-        """
-        Get the recipient info data from the specified file.
-        If the file does not exist, an empty dictionary is returned.
-
-        Returns
-        -------
-        dict
-
-        """
-        if recipient_info_file.exists():
-            logger.info(f"Loading recipient info from {recipient_info_file}")
-            with open(recipient_info_file, "r") as f:
-                recipient_info_list = json.load(f)
-                recipient_to_info = {
-                    info["name"]: RecipientInfo(
-                        name=info["name"],
-                        category=info.get("category", None),
-                        ask_for_category=info.get("ask_for_category", False),
-                    )
-                    for info in recipient_info_list
-                }
-        else:
-            logger.info(
-                f"Recipient info file {recipient_info_file} does not exist. Proceeding with empty info."
-            )
-            recipient_to_info = {}
-
-        return recipient_to_info
-
-    def get_recipients(self) -> list[str]:
-        """Returns a list of all recipients in the registry."""
-        return list(self.recipient_to_info)
-
-    def get_recipient_category(self, recipient_name: str) -> str
-        """
-        Get the category for a recipient.
-        If the recipient does not exist, None is returned.
-        """
-        # Think whether to do this or return whole mapping
-        info = self.recipient_to_info.get(recipient_name)
-        if info:
-            return info.category
-        else:
-            logger.warning(f"Recipient {recipient_name} not found in registry.")
-            return None
-
-    def set_recipient_info(self, info: RecipientInfo) -> None:
-        """
-        Set the information for a recipient.
-        If the recipient already exists, it will be updated.
-        If it does not exist, it will be added.
-        """
-        logger.debug(f"Setting info for recipient {info.name}")
-        self.recipient_to_info[info.name] = info
-
     def save_to_file(self):
-        logger.info(f"Saving recipient info to {self.file_path}")
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
-        recipient_info_list = [asdict(info) for info in self.recipient_to_info.values()]
-        with open(self.file_path, "w") as f:
-            json.dump(recipient_info_list, f, indent=4)
+        logger.info(f"Saving payees info to {self.info_file_path}")
+        payees_info_list = [
+            asdict(payee) for payee in self._payee_name_to_payee.values()
+        ]
+        self.info_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.info_file_path, "w") as f:
+            json.dump(payees_info_list, f, indent=4)
