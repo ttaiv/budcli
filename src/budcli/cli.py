@@ -56,12 +56,6 @@ def add_statement(file_path: str):
     """
 
 
-@app.command()
-def report():
-    """Generate a spending report."""
-    typer.echo("Generating report...")
-
-
 def main():
     app()
 
