@@ -32,18 +32,32 @@ def add_statement(file_path: str):
     )
     statement.print_summary()
 
-    payee_registry = PayeeRegistry()
-    new_payee_names = statement.get_new_payees(
-        existing_recipients=payee_registry.get_payee_names()
+    payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
+    statement_payee_names: set[str] = statement.get_payees()
+
+    # Determine new and existing payees.
+    new_payee_names: set[str] = statement_payee_names - payee_registry.get_payee_names()
+    existing_payee_names: set[str] = (
+        payee_registry.get_payee_names() & statement_payee_names
     )
 
+    # Get those existing payees that need confirmation.
+    existing_payees = [
+        payee_registry.get_payee_by_name(name) for name in existing_payee_names
+    ]
+    payees_to_confirm = [payee for payee in existing_payees if payee.ask_for_category]
+
+    # Add new payees to the registry.
     if new_payee_names:
         logger.info("New payees found, prompting for categories...")
-        _prompt_and_add_new_payees(new_payee_names, payee_registry)
+        _prompt_and_add_new_payees(list(new_payee_names), payee_registry)
 
-    payees_to_confirm: list[Payee] = payee_registry.get_payees_to_ask()
-    _confirm_and_update_payee_categories(payees_to_confirm, payee_registry)
+    # Confirm categories of existing payees and update the registry.
+    if payees_to_confirm:
+        logger.info("Existing payees found that need category confirmation...")
+        _confirm_and_update_payee_categories(payees_to_confirm, payee_registry)
 
+    # Save the updated payee registry to file.
     payee_registry.save_to_file()
 
     """"

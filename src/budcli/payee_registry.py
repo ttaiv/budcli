@@ -34,31 +34,15 @@ class PayeeRegistry(ABC):
             logger.info("Payee info file not found, creating a new registry.")
             self._payee_name_to_payee: dict[str, Payee] = {}
 
-    def get_payee_names(self) -> list[str]:
-        """Return a list of payee names in the registry."""
-        return list(self._payee_name_to_payee)
+    def get_payee_names(self) -> set[str]:
+        """Return a set of payee names in the registry."""
+        return set(self._payee_name_to_payee)
 
-    def get_payees_to_ask(self) -> list[Payee]:
-        """Return a list of payees that require category confirmation."""
-        return [
-            payee
-            for payee in self._payee_name_to_payee.values()
-            if payee.ask_for_category
-        ]
-
-    '''
-
-    def get_payee_category(self, name: str) -> str:
-        """Get the category of a payee by name."""
-        payee = self._payee_name_to_payee[name]
-
-        if isinstance(payee, ConstantCategoryPayee):
-            return payee.category
-        elif isinstance(payee, VariableCategoryPayee):
-            return payee.default_category
-        else:
-            raise TypeError(f"Unknown payee type for {name}.")
-    '''
+    def get_payee_by_name(self, name: str) -> Payee:
+        """Get a payee by its name."""
+        if name not in self._payee_name_to_payee:
+            raise KeyError(f"Payee {name} not found in the registry.")
+        return self._payee_name_to_payee[name]
 
     def add_payee(self, payee: Payee) -> None:
         """Add a new payee to the registry."""
