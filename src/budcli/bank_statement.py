@@ -1,4 +1,5 @@
 import logging
+from typing import Callable
 
 import pandas as pd
 
@@ -9,10 +10,10 @@ class BankStatement:
     """Represents a bank statement."""
 
     def __init__(
-        self, csv_file_path: str, amount_col_name: str, recipient_col_name: str
+        self, csv_file_path: str, amount_col_name: str, payee_col_name: str
     ) -> None:
         self.amount_col_name = amount_col_name
-        self.recipient_col_name = recipient_col_name
+        self.recipient_col_name = payee_col_name
 
         # Read the statement csv and preprocess it
         logger.info(f"Reading bank statement from {csv_file_path}")
@@ -27,12 +28,12 @@ class BankStatement:
         self.income = self.statement_df[self.statement_df[amount_col_name] > 0].copy()
 
         self.expense_per_recipient = (
-            self.expenses.groupby(recipient_col_name)[amount_col_name]
+            self.expenses.groupby(payee_col_name)[amount_col_name]
             .sum()
             .sort_values(ascending=False)
             .reset_index()
         )
-        self.recipients = set(self.expense_per_recipient[recipient_col_name].tolist())
+        self.recipients = set(self.expense_per_recipient[payee_col_name].tolist())
 
     # NOTE: Currently hard coded for s pankki
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
@@ -73,13 +74,15 @@ class BankStatement:
         print(f"Total income: {self.income[self.amount_col_name].sum()}")
         print(f"Total transactions: {len(self.statement_df)}")
 
-    def get_new_recipients(self, existing_recipients: list[str]) -> list[str]:
+    def get_new_payees(self, existing_recipients: list[str]) -> list[str]:
         """Get those recipients of the statement that are not in the provided list."""
         new_recipients = self.recipients - set(existing_recipients)
 
         return list(new_recipients)
 
-    def categorize_expenses(self, recipient_to_category: dict[str, str]) -> pd.DataFrame:
+    def categorize_expenses(
+        self, recipient_to_category: Callable[[str], str]
+    ) -> pd.DataFrame:
         expense_per_recipient = self.expense_per_recipient.copy()
 
         expense_per_recipient["Category"] = expense_per_recipient[
