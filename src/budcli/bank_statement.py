@@ -12,51 +12,53 @@ class BankStatement:
     def __init__(
         self, csv_file_path: str, amount_col_name: str, payee_col_name: str
     ) -> None:
-        self.amount_col_name = amount_col_name
-        self.recipient_col_name = payee_col_name
+        self._amount_col_name = amount_col_name
+        self._payee_col_name = payee_col_name
 
         # Read the statement csv and preprocess it
         logger.info(f"Reading bank statement from {csv_file_path}")
         df = pd.read_csv(csv_file_path, sep=";")
         logger.info("Preprocessing bank statement data")
-        self.statement_df = self._preprocess_bank_data_df(df)  # hard coded for danske
+        self._statement_df = self._preprocess_bank_data_df(df)  # hard coded for danske
 
-        self.expenses = self.statement_df[self.statement_df[amount_col_name] < 0].copy()
+        self._expenses_df = self._statement_df[
+            self._statement_df[amount_col_name] < 0
+        ].copy()
         # Convert to positive numbers
-        self.expenses[amount_col_name] = self.expenses[amount_col_name].abs()
+        self._expenses_df[amount_col_name] = self._expenses_df[amount_col_name].abs()
 
-        self.income = self.statement_df[self.statement_df[amount_col_name] > 0].copy()
+        self._income_df = self._statement_df[
+            self._statement_df[amount_col_name] > 0
+        ].copy()
 
-        self.expense_per_recipient = (
-            self.expenses.groupby(payee_col_name)[amount_col_name]
+        self._expense_per_payee = (
+            self._expenses_df.groupby(payee_col_name)[amount_col_name]
             .sum()
             .sort_values(ascending=False)
             .reset_index()
         )
-        self.recipients = set(self.expense_per_recipient[payee_col_name].tolist())
+        self._payees = set(self._expense_per_payee[payee_col_name].tolist())
 
     def print_summary(self) -> None:
-        print(f"Total expenses: {self.expenses[self.amount_col_name].sum()}")
-        print(f"Total income: {self.income[self.amount_col_name].sum()}")
-        print(f"Total transactions: {len(self.statement_df)}")
+        print(f"Total expenses: {self._expenses_df[self._amount_col_name].sum()}")
+        print(f"Total income: {self._income_df[self._amount_col_name].sum()}")
+        print(f"Total transactions: {len(self._statement_df)}")
 
-    def get_new_payees(self, existing_recipients: list[str]) -> list[str]:
-        """Get those recipients of the statement that are not in the provided list."""
-        new_recipients = self.recipients - set(existing_recipients)
-
-        return list(new_recipients)
+    def get_payees(self) -> set[str]:
+        """Get set of payees from the bank statement."""
+        return self._payees.copy()
 
     def categorize_expenses(
         self, recipient_to_category: Callable[[str], str]
     ) -> pd.DataFrame:
-        expense_per_recipient = self.expense_per_recipient.copy()
+        expense_per_recipient = self._expense_per_payee.copy()
 
         expense_per_recipient["Category"] = expense_per_recipient[
-            self.recipient_col_name
+            self._payee_col_name
         ].map(recipient_to_category)
 
         return (
-            expense_per_recipient.groupby("Category")[self.amount_col_name]
+            expense_per_recipient.groupby("Category")[self._amount_col_name]
             .sum()
             .sort_values(ascending=False)
             .reset_index()
