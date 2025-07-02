@@ -38,6 +38,14 @@ class PayeeRegistry(ABC):
         """Return a list of payee names in the registry."""
         return list(self._payee_name_to_payee)
 
+    def get_payees_to_ask(self) -> list[Payee]:
+        """Return a list of payees that require category confirmation."""
+        return [
+            payee
+            for payee in self._payee_name_to_payee.values()
+            if payee.ask_for_category
+        ]
+
     '''
 
     def get_payee_category(self, name: str) -> str:
@@ -62,6 +70,18 @@ class PayeeRegistry(ABC):
         self._payee_name_to_payee[payee.name] = payee
         logger.debug(
             f"Added payee {payee.name} with primary category {payee.primary_category}."
+        )
+
+    def update_payee(self, payee: Payee) -> None:
+        """Update an existing payee in the registry."""
+        if payee.name not in self._payee_name_to_payee:
+            logger.warning(
+                f"Payee {payee.name} does not exist in the registry, cannot update it."
+            )
+            return
+        self._payee_name_to_payee[payee.name] = payee
+        logger.debug(
+            f"Updated payee {payee.name} with primary category {payee.primary_category}."
         )
 
     def save_to_file(self):
