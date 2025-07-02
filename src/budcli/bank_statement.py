@@ -35,7 +35,35 @@ class BankStatement:
         )
         self.recipients = set(self.expense_per_recipient[payee_col_name].tolist())
 
-    # NOTE: Currently hard coded for s pankki
+    def print_summary(self) -> None:
+        print(f"Total expenses: {self.expenses[self.amount_col_name].sum()}")
+        print(f"Total income: {self.income[self.amount_col_name].sum()}")
+        print(f"Total transactions: {len(self.statement_df)}")
+
+    def get_new_payees(self, existing_recipients: list[str]) -> list[str]:
+        """Get those recipients of the statement that are not in the provided list."""
+        new_recipients = self.recipients - set(existing_recipients)
+
+        return list(new_recipients)
+
+    def categorize_expenses(
+        self, recipient_to_category: Callable[[str], str]
+    ) -> pd.DataFrame:
+        expense_per_recipient = self.expense_per_recipient.copy()
+
+        expense_per_recipient["Category"] = expense_per_recipient[
+            self.recipient_col_name
+        ].map(recipient_to_category)
+
+        return (
+            expense_per_recipient.groupby("Category")[self.amount_col_name]
+            .sum()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+
+        # NOTE: Currently hard coded for s pankki
+
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
         """
         Preprocess the bank data by converting date columns to datetime format,
@@ -68,30 +96,3 @@ class BankStatement:
         )
 
         return bank_data
-
-    def print_summary(self) -> None:
-        print(f"Total expenses: {self.expenses[self.amount_col_name].sum()}")
-        print(f"Total income: {self.income[self.amount_col_name].sum()}")
-        print(f"Total transactions: {len(self.statement_df)}")
-
-    def get_new_payees(self, existing_recipients: list[str]) -> list[str]:
-        """Get those recipients of the statement that are not in the provided list."""
-        new_recipients = self.recipients - set(existing_recipients)
-
-        return list(new_recipients)
-
-    def categorize_expenses(
-        self, recipient_to_category: Callable[[str], str]
-    ) -> pd.DataFrame:
-        expense_per_recipient = self.expense_per_recipient.copy()
-
-        expense_per_recipient["Category"] = expense_per_recipient[
-            self.recipient_col_name
-        ].map(recipient_to_category)
-
-        return (
-            expense_per_recipient.groupby("Category")[self.amount_col_name]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
-        )
