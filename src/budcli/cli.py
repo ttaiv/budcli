@@ -74,39 +74,6 @@ def add_statement(file_path: str):
         for expense in expenses:
             print(f"    - {expense.payee_name}: {expense.amount}€")
 
-    """
-    # Determine new and existing payees.
-    new_payee_names: set[str] = statement_payee_names - payee_registry.get_payee_names()
-    existing_payee_names: set[str] = (
-        payee_registry.get_payee_names() & statement_payee_names
-    )
-
-    # Get those existing payees that need confirmation.
-    existing_payees = [
-        payee_registry.get_payee_by_name(name) for name in existing_payee_names
-    ]
-    payees_to_confirm = [payee for payee in existing_payees if payee.ask_for_category]
-
-    # Add new payees to the registry.
-    if new_payee_names:
-        logger.info("New payees found, prompting for categories...")
-        _prompt_and_add_new_payees(list(new_payee_names), payee_registry)
-
-    # Confirm categories of existing payees and update the registry.
-    if payees_to_confirm:
-        logger.info("Existing payees found that need category confirmation...")
-        _confirm_and_update_payee_categories(payees_to_confirm, payee_registry)
-
-    # Save the updated payee registry to file.
-
-    logger.info("Proceeding to categorize expenses...")
-    expense_per_category = statement.categorize_expenses(
-        payee_registry.recipient_to_info
-    )
-    print("Expenses categorized by recipient:\n")
-    print(expense_per_category)
-    """
-
 
 def main():
     app()
@@ -130,6 +97,9 @@ def _get_total_expenses_per_category(
             category_to_total[category] += expense.amount
 
     return category_to_total
+
+
+# Functions below are currently unused.
 
 
 def _prompt_and_add_new_payees(
