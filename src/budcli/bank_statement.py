@@ -7,12 +7,12 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Transaction:
     """Represent a bank transaction in the statement."""
 
-    payee: str
-    amount: str
+    payee_name: str
+    amount: float
     date: pd.Timestamp
     transaction_type: Literal["expense", "income"]
 
@@ -62,7 +62,7 @@ class BankStatement:
             if transaction_type == "all" or row_type == transaction_type:
                 transactions.append(
                     Transaction(
-                        payee=row[self._payee_col_name],
+                        payee_name=row[self._payee_col_name],
                         amount=abs(amount),  # amount is always positive
                         date=row["Kirjauspäivä"],
                         transaction_type=row_type,
