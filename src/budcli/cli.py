@@ -1,8 +1,9 @@
 import logging
+from collections import defaultdict
 
 import typer
 
-from budcli.bank_statement import BankStatement
+from budcli.bank_statement import BankStatement, Transaction
 from budcli.payee_registry import Payee, PayeeRegistry
 
 app = typer.Typer()
@@ -33,8 +34,47 @@ def add_statement(file_path: str):
     statement.print_summary()
 
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
-    statement_payee_names: set[str] = statement.get_payees()
 
+    expense_to_category = {}
+
+    for expense in statement.get_transactions("expense"):
+        if payee_registry.has_payee(expense.payee_name):
+            payee_info = payee_registry.get_payee_by_name(expense.payee_name)
+            expense_to_category[expense] = payee_info.primary_category
+        else:
+            category = _prompt_for_category(expense)
+            expense_to_category[expense] = category
+            # Determine whether to remember this category for this payee in the future.
+            remember = typer.confirm(
+                "Do you want to automatically categorize payments "
+                f"for {expense.payee_name} to category {category} in the future?"
+            )
+            if remember:
+                new_payee_info = Payee(expense.payee_name, primary_category=category)
+                payee_registry.add_payee(new_payee_info)
+
+    # Save updated registry
+    payee_registry.save_to_file()
+
+    # Now group the expenses by category
+    category_to_expenses = defaultdict(list[Transaction])
+    for expense, category in expense_to_category.items():
+        category_to_expenses[category].append(expense)
+
+    category_to_total = _get_total_expenses_per_category(category_to_expenses)
+
+    # Print summary
+    print("----------Expense summary by category----------")
+    for category, expenses in category_to_expenses.items():
+        print(f"{category}: {category_to_total[category]:.2f}€")
+
+    print("----------Transactions in each category---------")
+    for category, expenses in category_to_expenses.items():
+        print(f"{category}: {category_to_total[category]:.2f}€ total")
+        for expense in expenses:
+            print(f"    - {expense.payee_name}: {expense.amount}€")
+
+    """
     # Determine new and existing payees.
     new_payee_names: set[str] = statement_payee_names - payee_registry.get_payee_names()
     existing_payee_names: set[str] = (
@@ -58,9 +98,7 @@ def add_statement(file_path: str):
         _confirm_and_update_payee_categories(payees_to_confirm, payee_registry)
 
     # Save the updated payee registry to file.
-    payee_registry.save_to_file()
 
-    """"
     logger.info("Proceeding to categorize expenses...")
     expense_per_category = statement.categorize_expenses(
         payee_registry.recipient_to_info
@@ -72,6 +110,26 @@ def add_statement(file_path: str):
 
 def main():
     app()
+
+
+def _prompt_for_category(expense: Transaction) -> str:
+    date_str = expense.date.strftime("%d.%m.%Y")
+    category = typer.prompt(
+        f"What is the category for payment of {expense.amount}€ "
+        f"to {expense.payee_name} on {date_str}"
+    )
+    return category
+
+
+def _get_total_expenses_per_category(
+    category_to_expenses: dict[str, list[Transaction]],
+) -> dict[str, float]:
+    category_to_total = {category: 0.0 for category in category_to_expenses}
+    for category, expenses in category_to_expenses.items():
+        for expense in expenses:
+            category_to_total[category] += expense.amount
+
+    return category_to_total
 
 
 def _prompt_and_add_new_payees(
