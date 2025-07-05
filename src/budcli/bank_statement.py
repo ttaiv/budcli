@@ -1,9 +1,20 @@
 import logging
-from typing import Callable
+from dataclasses import dataclass
+from typing import Callable, Literal
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Transaction:
+    """Represent a bank transaction in the statement."""
+
+    payee: str
+    amount: str
+    date: pd.Timestamp
+    type: Literal["expense", "income"]
 
 
 class BankStatement:
@@ -19,7 +30,7 @@ class BankStatement:
         logger.info(f"Reading bank statement from {csv_file_path}")
         df = pd.read_csv(csv_file_path, sep=";")
         logger.info("Preprocessing bank statement data")
-        self._statement_df = self._preprocess_bank_data_df(df)  # hard coded for danske
+        self._statement_df = self._preprocess_bank_data_df(df)  # hard coded for s-bank
 
         self._expenses_df = self._statement_df[
             self._statement_df[amount_col_name] < 0
@@ -38,6 +49,22 @@ class BankStatement:
             .reset_index()
         )
         self._payees = set(self._expense_per_payee[payee_col_name].tolist())
+
+    def get_transactions(self) -> list[Transaction]:
+        """Return a list of transactions of the statement."""
+        transactions = []
+        for _, row in self._statement_df.iterrows():
+            amount = row[self._amount_col_name]
+            transaction_type = "income" if amount >= 0 else "expense"
+            transactions.append(
+                Transaction(
+                    payee=row[self._payee_col_name],
+                    amount=abs(amount),  # amount is always positive
+                    date=row["Kirjauspäivä"],
+                    type=transaction_type,
+                )
+            )
+        return transactions
 
     def print_summary(self) -> None:
         print(f"Total expenses: {self._expenses_df[self._amount_col_name].sum()}")
@@ -64,8 +91,7 @@ class BankStatement:
             .reset_index()
         )
 
-        # NOTE: Currently hard coded for s pankki
-
+    # NOTE: Currently hard coded for s-bank
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
         """
         Preprocess the bank data by converting date columns to datetime format,
