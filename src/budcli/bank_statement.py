@@ -14,7 +14,7 @@ class Transaction:
     payee: str
     amount: str
     date: pd.Timestamp
-    type: Literal["expense", "income"]
+    transaction_type: Literal["expense", "income"]
 
 
 class BankStatement:
@@ -50,20 +50,24 @@ class BankStatement:
         )
         self._payees = set(self._expense_per_payee[payee_col_name].tolist())
 
-    def get_transactions(self) -> list[Transaction]:
+    def get_transactions(
+        self, transaction_type: Literal["expense", "income", "all"] = "all"
+    ) -> list[Transaction]:
         """Return a list of transactions of the statement."""
+        assert transaction_type in ["expense", "income", "all"]
         transactions = []
         for _, row in self._statement_df.iterrows():
             amount = row[self._amount_col_name]
-            transaction_type = "income" if amount >= 0 else "expense"
-            transactions.append(
-                Transaction(
-                    payee=row[self._payee_col_name],
-                    amount=abs(amount),  # amount is always positive
-                    date=row["Kirjauspäivä"],
-                    type=transaction_type,
+            row_type = "income" if amount >= 0 else "expense"
+            if transaction_type == "all" or row_type == transaction_type:
+                transactions.append(
+                    Transaction(
+                        payee=row[self._payee_col_name],
+                        amount=abs(amount),  # amount is always positive
+                        date=row["Kirjauspäivä"],
+                        transaction_type=row_type,
+                    )
                 )
-            )
         return transactions
 
     def print_summary(self) -> None:
