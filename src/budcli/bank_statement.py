@@ -73,6 +73,16 @@ class BankStatement:
         bank_data[self._amount_col_name] = pd.to_numeric(
             bank_data[self._amount_col_name].str.replace(",", ".")
         )
+        bank_data[self._payee_col_name] = (
+            bank_data[self._payee_col_name]
+            .str.strip()  # Remove leading/trailing whitespace
+            .str.replace("  ", " ")  # Replace double spaces with single space
+            .str.lower()
+            .str.replace("ä", "a")
+            .str.replace("ö", "o")
+            .str.title()  # Capitalize the first letter of each word
+        )
+
         # Only keep the relevant columns.
         bank_data = bank_data[
             [self._payee_col_name, self._amount_col_name, self._date_col_name]

@@ -1,8 +1,8 @@
 import logging
-from collections import defaultdict
 
 import typer
 
+import budcli.statement_analysis as analysis
 from budcli.bank_statement import BankStatement, Transaction
 from budcli.payee_registry import Payee, PayeeRegistry
 
@@ -12,36 +12,37 @@ logger = logging.getLogger(__name__)
 
 
 @app.command()
-def add_statement(file_path: str):
-    """
-    Import a bank statement CSV file to be processed.
-
-    Parameters
-    ----------
-    file : str
-        The path to the CSV file to import.
-    verbose : bool, optional
-        If True, enable verbose output. The default is False.
-    """
+def add_statement(
+    file_path: str,
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output."
+    ),
+) -> None:
+    """Categorize expenses from a bank statement CSV file."""
     logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(name)s - %(levelname)s - %(message)s",
+        level=logging.DEBUG if verbose else logging.WARNING,
+        format="%(levelname)s - %(message)s",
     )
-
+    # Load the bank statement and payee information.
     statement = BankStatement(
         file_path,
         amount_col_name="Summa",
         payee_col_name="Saajan nimi",
         date_col_name="Maksupäivä",
     )
-    print("----------Bank statement summary----------")
-    statement.print_summary()
-
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
 
-    expense_to_category: dict[Transaction, str] = {}
+    statement_expenses = statement.get_transactions("expense")
+    if not statement_expenses:
+        typer.echo("No expenses found in the bank statement.")
+        return
 
-    for expense in statement.get_transactions("expense"):
+    # Calculate total expenses per payee.
+    payee_to_total = analysis.get_total_expenses_per_payee(statement_expenses)
+
+    # Categorize each expense and update the payee registry if user chooses to save the category.
+    expense_to_category: dict[Transaction, str] = {}
+    for expense in statement_expenses:
         if payee_registry.has_payee(expense.payee_name):
             payee_info = payee_registry.get_payee_by_name(expense.payee_name)
             expense_to_category[expense] = payee_info.primary_category
@@ -60,26 +61,39 @@ def add_statement(file_path: str):
     # Save updated registry
     payee_registry.save_to_file()
 
-    # Now group the expenses by category
-    category_to_expenses: dict[str, list[Transaction]] = defaultdict(list)
-    for expense, category in expense_to_category.items():
-        category_to_expenses[category].append(expense)
+    # Group the expenses by category
+    category_to_expenses = analysis.group_transactions_by_category(expense_to_category)
+    category_to_total = analysis.get_total_amount_per_category(category_to_expenses)
+    # Sort categories by total expense descending
+    category_to_total_descending = sorted(
+        category_to_total.items(), key=lambda x: x[1], reverse=True
+    )
 
-    category_to_total = _get_total_expenses_per_category(category_to_expenses)
+    # Print results.
+    print("---------- Bank statement summary ----------")
+    statement.print_summary()
 
-    # Print summary
-    print("----------Expense summary by category----------")
-    for category, expenses in category_to_expenses.items():
-        print(f"{category}: {category_to_total[category]:.2f}€")
+    print("---------- Total expenses per category ----------")
+    max_category_len = max((len(str(cat)) for cat, _ in category_to_total_descending))
+    for category, total in category_to_total_descending:
+        print(f"{category:<{max_category_len}} : {total:10.2f}€")
 
-    print("----------Transactions in each category---------")
-    for category, expenses in category_to_expenses.items():
-        print(f"{category}: {category_to_total[category]:.2f}€ total")
+    print("---------- Total expenses per payee ----------")
+    max_payee_len = max((len(str(payee)) for payee, _ in payee_to_total.items()))
+    for payee, total in sorted(
+        payee_to_total.items(), key=lambda x: x[1], reverse=True
+    ):
+        print(f"{payee:<{max_payee_len}} : {total:10.2f}€")
+
+    print("---------- Transactions in each category ----------")
+    for category, total in category_to_total_descending:
+        expenses = category_to_expenses[category]
+        print(f"{category}: {total:.2f}€ total")
         for expense in expenses:
             print(f"    - {expense.payee_name}: {expense.amount}€")
 
 
-def main():
+def main() -> None:
     app()
 
 
@@ -90,17 +104,6 @@ def _prompt_for_category(expense: Transaction) -> str:
         f"to {expense.payee_name} on {date_str}"
     )
     return category
-
-
-def _get_total_expenses_per_category(
-    category_to_expenses: dict[str, list[Transaction]],
-) -> dict[str, float]:
-    category_to_total = {category: 0.0 for category in category_to_expenses}
-    for category, expenses in category_to_expenses.items():
-        for expense in expenses:
-            category_to_total[category] += expense.amount
-
-    return category_to_total
 
 
 # Functions below are currently unused.
