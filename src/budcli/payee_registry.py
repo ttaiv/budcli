@@ -34,6 +34,10 @@ class PayeeRegistry(ABC):
             logger.info("Payee info file not found, creating a new registry.")
             self._payee_name_to_payee: dict[str, Payee] = {}
 
+    def has_payee(self, payee_name: str) -> bool:
+        """Return True if payee with given name is in the registry, False otherwise."""
+        return payee_name in self._payee_name_to_payee
+
     def get_payee_names(self) -> set[str]:
         """Return a set of payee names in the registry."""
         return set(self._payee_name_to_payee)
@@ -68,7 +72,8 @@ class PayeeRegistry(ABC):
             f"Updated payee {payee.name} with primary category {payee.primary_category}."
         )
 
-    def save_to_file(self):
+    def save_to_file(self) -> None:
+        """Overwrite the payee info file with the current registry state."""
         logger.info(f"Saving payees info to {self.info_file_path}")
         payees_info_list = [
             asdict(payee) for payee in self._payee_name_to_payee.values()
