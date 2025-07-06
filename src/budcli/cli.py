@@ -74,14 +74,16 @@ def add_statement(
     statement.print_summary()
 
     print("---------- Total expenses per category ----------")
+    max_category_len = max((len(str(cat)) for cat, _ in category_to_total_descending))
     for category, total in category_to_total_descending:
-        print(f"{category}: {total:.2f}€")
+        print(f"{category:<{max_category_len}} : {total:10.2f}€")
 
     print("---------- Total expenses per payee ----------")
+    max_payee_len = max((len(str(payee)) for payee, _ in payee_to_total.items()))
     for payee, total in sorted(
         payee_to_total.items(), key=lambda x: x[1], reverse=True
     ):
-        print(f"{payee}: {total:.2f}€")
+        print(f"{payee:<{max_payee_len}} : {total:10.2f}€")
 
     print("---------- Transactions in each category ----------")
     for category, total in category_to_total_descending:
