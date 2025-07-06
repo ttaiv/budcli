@@ -39,7 +39,7 @@ def add_statement(file_path: str):
 
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
 
-    expense_to_category = {}
+    expense_to_category: dict[Transaction, str] = {}
 
     for expense in statement.get_transactions("expense"):
         if payee_registry.has_payee(expense.payee_name):
@@ -61,7 +61,7 @@ def add_statement(file_path: str):
     payee_registry.save_to_file()
 
     # Now group the expenses by category
-    category_to_expenses = defaultdict(list[Transaction])
+    category_to_expenses: dict[str, list[Transaction]] = defaultdict(list)
     for expense, category in expense_to_category.items():
         category_to_expenses[category].append(expense)
 
