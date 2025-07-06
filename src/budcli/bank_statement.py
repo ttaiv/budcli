@@ -12,6 +12,7 @@ class Transaction:
     """Represent a bank transaction in the statement."""
 
     payee_name: str
+    payer_name: str
     amount: float
     date: pd.Timestamp
     transaction_type: Literal["expense", "income"]
@@ -25,10 +26,12 @@ class BankStatement:
         csv_file_path: str,
         amount_col_name: str,
         payee_col_name: str,
+        payer_col_name: str,
         date_col_name: str,
     ) -> None:
         self._amount_col_name = amount_col_name
         self._payee_col_name = payee_col_name
+        self._payer_col_name = payer_col_name
         self._date_col_name = date_col_name
 
         # Read the statement to dataframe csv and preprocess it.
@@ -82,10 +85,24 @@ class BankStatement:
             .str.replace("ö", "o")
             .str.title()  # Capitalize the first letter of each word
         )
+        bank_data[self._payer_col_name] = (
+            bank_data[self._payer_col_name]
+            .str.strip()  # Remove leading/trailing whitespace
+            .str.replace("  ", " ")  # Replace double spaces with single space
+            .str.lower()
+            .str.replace("ä", "a")
+            .str.replace("ö", "o")
+            .str.title()  # Capitalize the first letter of each word
+        )
 
         # Only keep the relevant columns.
         bank_data = bank_data[
-            [self._payee_col_name, self._amount_col_name, self._date_col_name]
+            [
+                self._payee_col_name,
+                self._payer_col_name,
+                self._amount_col_name,
+                self._date_col_name,
+            ]
         ]
 
         return bank_data
@@ -103,6 +120,7 @@ class BankStatement:
                 transactions.append(
                     Transaction(
                         payee_name=row[self._payee_col_name],
+                        payer_name=row[self._payer_col_name],
                         amount=abs(amount),  # amount is always positive
                         date=row[self._date_col_name],
                         transaction_type=row_type,

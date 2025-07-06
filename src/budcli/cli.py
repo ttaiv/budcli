@@ -28,13 +28,15 @@ def add_statement(
         file_path,
         amount_col_name="Summa",
         payee_col_name="Saajan nimi",
+        payer_col_name="Maksaja",
         date_col_name="Maksupäivä",
     )
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
 
     statement_expenses = statement.get_transactions("expense")
-    if not statement_expenses:
-        typer.echo("No expenses found in the bank statement.")
+    statement_income = statement.get_transactions("income")
+    if not statement_expenses and not statement_income:
+        typer.echo("No expenses or income found in the bank statement.")
         return
 
     # Calculate total expenses per payee.
@@ -73,24 +75,32 @@ def add_statement(
     print("---------- Bank statement summary ----------")
     statement.print_summary()
 
-    print("---------- Total expenses per category ----------")
-    max_category_len = max((len(str(cat)) for cat, _ in category_to_total_descending))
-    for category, total in category_to_total_descending:
-        print(f"{category:<{max_category_len}} : {total:10.2f}€")
+    if statement_income:
+        print("---------- Income ----------")
+        for income in statement_income:
+            print(f"- {income.payer_name}: {income.amount:10.2f}€")
 
-    print("---------- Total expenses per payee ----------")
-    max_payee_len = max((len(str(payee)) for payee, _ in payee_to_total.items()))
-    for payee, total in sorted(
-        payee_to_total.items(), key=lambda x: x[1], reverse=True
-    ):
-        print(f"{payee:<{max_payee_len}} : {total:10.2f}€")
+    if statement_expenses:
+        print("---------- Total expenses per category ----------")
+        max_category_len = max(
+            (len(str(cat)) for cat, _ in category_to_total_descending)
+        )
+        for category, total in category_to_total_descending:
+            print(f"{category:<{max_category_len}} : {total:10.2f}€")
 
-    print("---------- Transactions in each category ----------")
-    for category, total in category_to_total_descending:
-        expenses = category_to_expenses[category]
-        print(f"{category}: {total:.2f}€ total")
-        for expense in expenses:
-            print(f"    - {expense.payee_name}: {expense.amount}€")
+        print("---------- Total expenses per payee ----------")
+        max_payee_len = max((len(str(payee)) for payee, _ in payee_to_total.items()))
+        for payee, total in sorted(
+            payee_to_total.items(), key=lambda x: x[1], reverse=True
+        ):
+            print(f"{payee:<{max_payee_len}} : {total:10.2f}€")
+
+        print("---------- Transactions in each category ----------")
+        for category, total in category_to_total_descending:
+            expenses = category_to_expenses[category]
+            print(f"{category}: {total:.2f}€ total")
+            for expense in expenses:
+                print(f"    - {expense.payee_name}: {expense.amount}€")
 
 
 def main() -> None:
