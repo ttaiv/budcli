@@ -23,21 +23,26 @@ def add_statement(
         level=logging.DEBUG if verbose else logging.WARNING,
         format="%(levelname)s - %(message)s",
     )
-
+    # Load the bank statement and payee information.
     statement = BankStatement(
         file_path,
         amount_col_name="Summa",
         payee_col_name="Saajan nimi",
         date_col_name="Maksupäivä",
     )
-    print("----------Bank statement summary----------")
-    statement.print_summary()
-
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
 
-    expense_to_category: dict[Transaction, str] = {}
+    statement_expenses = statement.get_transactions("expense")
+    if not statement_expenses:
+        typer.echo("No expenses found in the bank statement.")
+        return
 
-    for expense in statement.get_transactions("expense"):
+    # Calculate total expenses per payee.
+    payee_to_total = analysis.get_total_expenses_per_payee(statement_expenses)
+
+    # Categorize each expense and update the payee registry if user chooses to save the category.
+    expense_to_category: dict[Transaction, str] = {}
+    for expense in statement_expenses:
         if payee_registry.has_payee(expense.payee_name):
             payee_info = payee_registry.get_payee_by_name(expense.payee_name)
             expense_to_category[expense] = payee_info.primary_category
@@ -56,17 +61,23 @@ def add_statement(
     # Save updated registry
     payee_registry.save_to_file()
 
-    # Now group the expenses by category
+    # Group the expenses by category
     category_to_expenses = analysis.group_transactions_by_category(expense_to_category)
-
     category_to_total = analysis.get_total_amount_per_category(category_to_expenses)
 
-    # Print summary
-    print("----------Expense summary by category----------")
+    # Print results.
+    print("---------- Bank statement summary ----------")
+    statement.print_summary()
+
+    print("---------- Total expenses per category ----------")
     for category, expenses in category_to_expenses.items():
         print(f"{category}: {category_to_total[category]:.2f}€")
 
-    print("----------Transactions in each category---------")
+    print("---------- Total expenses per payee ----------")
+    for payee, total in payee_to_total.items():
+        print(f"{payee}: {total:.2f}€")
+
+    print("---------- Transactions in each category ----------")
     for category, expenses in category_to_expenses.items():
         print(f"{category}: {category_to_total[category]:.2f}€ total")
         for expense in expenses:
