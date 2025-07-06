@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Literal
 
 import pandas as pd
 
@@ -26,74 +26,39 @@ class BankStatement:
         self._amount_col_name = amount_col_name
         self._payee_col_name = payee_col_name
 
-        # Read the statement csv and preprocess it
+        # Read the statement to dataframe csv and preprocess it.
         logger.info(f"Reading bank statement from {csv_file_path}")
         df = pd.read_csv(csv_file_path, sep=";")
         logger.info("Preprocessing bank statement data")
         self._statement_df = self._preprocess_bank_data_df(df)  # hard coded for s-bank
 
-        self._expenses_df = self._statement_df[
-            self._statement_df[amount_col_name] < 0
-        ].copy()
-        # Convert to positive numbers
-        self._expenses_df[amount_col_name] = self._expenses_df[amount_col_name].abs()
-
-        self._income_df = self._statement_df[
-            self._statement_df[amount_col_name] > 0
-        ].copy()
-
-        self._expense_per_payee = (
-            self._expenses_df.groupby(payee_col_name)[amount_col_name]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
-        )
-        self._payees = set(self._expense_per_payee[payee_col_name].tolist())
+        # Parse transactions into lists of objects.
+        self._expenses: list[Transaction] = self._parse_transactions("expense")
+        self._income: list[Transaction] = self._parse_transactions("income")
 
     def get_transactions(
         self, transaction_type: Literal["expense", "income", "all"] = "all"
     ) -> list[Transaction]:
         """Return a list of transactions of the statement."""
-        assert transaction_type in ["expense", "income", "all"]
-        transactions = []
-        for _, row in self._statement_df.iterrows():
-            amount = row[self._amount_col_name]
-            row_type = "income" if amount >= 0 else "expense"
-            if transaction_type == "all" or row_type == transaction_type:
-                transactions.append(
-                    Transaction(
-                        payee_name=row[self._payee_col_name],
-                        amount=abs(amount),  # amount is always positive
-                        date=row["Kirjauspäivä"],
-                        transaction_type=row_type,
-                    )
-                )
-        return transactions
+        if transaction_type not in ["expense", "income", "all"]:
+            raise ValueError(
+                "transaction_type must be one of 'expense', 'income', or 'all'."
+            )
+        if transaction_type == "expense":
+            return self._expenses.copy()
+        elif transaction_type == "income":
+            return self._income.copy()
+        else:  # transaction_type == "all"
+            return self._expenses.copy() + self._income.copy()
 
     def print_summary(self) -> None:
-        print(f"Total expenses: {self._expenses_df[self._amount_col_name].sum()}")
-        print(f"Total income: {self._income_df[self._amount_col_name].sum()}")
+        """Print a summary of the bank statement."""
+        total_expenses = sum(transaction.amount for transaction in self._expenses)
+        total_income = sum(transaction.amount for transaction in self._income)
+
+        print(f"Total expenses: {total_expenses:.2f}€")
+        print(f"Total income: {total_income:.2f}€")
         print(f"Total transactions: {len(self._statement_df)}")
-
-    def get_payees(self) -> set[str]:
-        """Get set of payees from the bank statement."""
-        return self._payees.copy()
-
-    def categorize_expenses(
-        self, recipient_to_category: Callable[[str], str]
-    ) -> pd.DataFrame:
-        expense_per_recipient = self._expense_per_payee.copy()
-
-        expense_per_recipient["Category"] = expense_per_recipient[
-            self._payee_col_name
-        ].map(recipient_to_category)
-
-        return (
-            expense_per_recipient.groupby("Category")[self._amount_col_name]
-            .sum()
-            .sort_values(ascending=False)
-            .reset_index()
-        )
 
     # NOTE: Currently hard coded for s-bank
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
@@ -128,3 +93,23 @@ class BankStatement:
         )
 
         return bank_data
+
+    def _parse_transactions(
+        self, transaction_type: Literal["expense", "income", "all"] = "all"
+    ) -> list[Transaction]:
+        """Parse transactions from the pandas dataframe."""
+        assert transaction_type in ["expense", "income", "all"]
+        transactions = []
+        for _, row in self._statement_df.iterrows():
+            amount = row[self._amount_col_name]
+            row_type = "income" if amount >= 0 else "expense"
+            if transaction_type == "all" or row_type == transaction_type:
+                transactions.append(
+                    Transaction(
+                        payee_name=row[self._payee_col_name],
+                        amount=abs(amount),  # amount is always positive
+                        date=row["Kirjauspäivä"],
+                        transaction_type=row_type,
+                    )
+                )
+        return transactions
