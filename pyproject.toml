@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-bc = "budcli.cli:main"
+budcli = "budcli.cli:main"
 
 [build-system]
 requires = ["hatchling"]
