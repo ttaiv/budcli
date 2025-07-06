@@ -72,7 +72,8 @@ class PayeeRegistry(ABC):
             f"Updated payee {payee.name} with primary category {payee.primary_category}."
         )
 
-    def save_to_file(self):
+    def save_to_file(self) -> None:
+        """Overwrite the payee info file with the current registry state."""
         logger.info(f"Saving payees info to {self.info_file_path}")
         payees_info_list = [
             asdict(payee) for payee in self._payee_name_to_payee.values()
