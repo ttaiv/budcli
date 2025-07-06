@@ -27,9 +27,9 @@ def get_total_amount_per_category(
     category_to_transactions: dict[str, list[Transaction]],
 ) -> dict[str, float]:
     """Calculate the total amount for each category."""
-    category_to_total = {category: 0.0 for category in category_to_transactions}
-    for category, transactions in category_to_transactions.items():
-        for t in transactions:
-            category_to_total[category] += t.amount
+    category_to_total = {
+        category: sum(t.amount for t in transactions)
+        for category, transactions in category_to_transactions.items()
+    }
 
     return category_to_total
