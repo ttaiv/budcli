@@ -21,16 +21,21 @@ class BankStatement:
     """Represents a bank statement."""
 
     def __init__(
-        self, csv_file_path: str, amount_col_name: str, payee_col_name: str
+        self,
+        csv_file_path: str,
+        amount_col_name: str,
+        payee_col_name: str,
+        date_col_name: str,
     ) -> None:
         self._amount_col_name = amount_col_name
         self._payee_col_name = payee_col_name
+        self._date_col_name = date_col_name
 
         # Read the statement to dataframe csv and preprocess it.
         logger.info(f"Reading bank statement from {csv_file_path}")
         df = pd.read_csv(csv_file_path, sep=";")
         logger.info("Preprocessing bank statement data")
-        self._statement_df = self._preprocess_bank_data_df(df)  # hard coded for s-bank
+        self._statement_df = self._preprocess_bank_data_df(df)
 
         # Parse transactions into lists of objects.
         self._expenses: list[Transaction] = self._parse_transactions("expense")
@@ -60,37 +65,18 @@ class BankStatement:
         print(f"Total income: {total_income:.2f}€")
         print(f"Total transactions: {len(self._statement_df)}")
 
-    # NOTE: Currently hard coded for s-bank
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Preprocess the bank data by converting date columns to datetime format,
-        converting the 'Summa' column to numeric, and dropping unnecessary columns.
-
-        Parameters
-        ----------
-        bank_data : pd.DataFrame
-            The bank data to preprocess.
-
-        Returns
-        -------
-        pd.DataFrame
-            The preprocessed bank data.
-        """
-        bank_data["Kirjauspäivä"] = pd.to_datetime(
-            bank_data["Kirjauspäivä"], format="%d.%m.%Y"
+        """Preprocess the bank data dataframe."""
+        bank_data[self._date_col_name] = pd.to_datetime(
+            bank_data[self._date_col_name], format="%d.%m.%Y"
         )
-        bank_data["Maksupäivä"] = pd.to_datetime(
-            bank_data["Maksupäivä"], format="%d.%m.%Y"
+        bank_data[self._amount_col_name] = pd.to_numeric(
+            bank_data[self._amount_col_name].str.replace(",", ".")
         )
-        bank_data["Summa"] = pd.to_numeric(bank_data["Summa"].str.replace(",", "."))
-        bank_data = bank_data.drop(
-            columns=[
-                "Saajan tilinumero",
-                "Saajan BIC-tunnus",
-                "Arkistointitunnus",
-                "Viitenumero",
-            ]
-        )
+        # Only keep the relevant columns.
+        bank_data = bank_data[
+            [self._payee_col_name, self._amount_col_name, self._date_col_name]
+        ]
 
         return bank_data
 
@@ -108,7 +94,7 @@ class BankStatement:
                     Transaction(
                         payee_name=row[self._payee_col_name],
                         amount=abs(amount),  # amount is always positive
-                        date=row["Kirjauspäivä"],
+                        date=row[self._date_col_name],
                         transaction_type=row_type,
                     )
                 )

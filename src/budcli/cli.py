@@ -29,8 +29,12 @@ def add_statement(file_path: str):
     )
 
     statement = BankStatement(
-        file_path, amount_col_name="Summa", payee_col_name="Saajan nimi"
+        file_path,
+        amount_col_name="Summa",
+        payee_col_name="Saajan nimi",
+        date_col_name="Maksupäivä",
     )
+    print("----------Bank statement summary----------")
     statement.print_summary()
 
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
