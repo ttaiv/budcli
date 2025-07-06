@@ -1,0 +1,26 @@
+from collections import defaultdict
+
+from .bank_statement import Transaction
+
+
+def group_transactions_by_category(
+    transaction_to_category: dict[Transaction, str],
+) -> dict[str, list[Transaction]]:
+    """Group transactions by their categories."""
+    category_to_transactions: dict[str, list[Transaction]] = defaultdict(list)
+    for transaction, category in transaction_to_category.items():
+        category_to_transactions[category].append(transaction)
+
+    return category_to_transactions
+
+
+def get_total_amount_per_category(
+    category_to_transactions: dict[str, list[Transaction]],
+) -> dict[str, float]:
+    """Calculate the total amount for each category."""
+    category_to_total = {category: 0.0 for category in category_to_transactions}
+    for category, transactions in category_to_transactions.items():
+        for t in transactions:
+            category_to_total[category] += t.amount
+
+    return category_to_total

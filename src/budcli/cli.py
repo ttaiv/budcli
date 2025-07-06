@@ -1,8 +1,8 @@
 import logging
-from collections import defaultdict
 
 import typer
 
+import budcli.statement_analysis as analysis
 from budcli.bank_statement import BankStatement, Transaction
 from budcli.payee_registry import Payee, PayeeRegistry
 
@@ -57,11 +57,9 @@ def add_statement(
     payee_registry.save_to_file()
 
     # Now group the expenses by category
-    category_to_expenses: dict[str, list[Transaction]] = defaultdict(list)
-    for expense, category in expense_to_category.items():
-        category_to_expenses[category].append(expense)
+    category_to_expenses = analysis.group_transactions_by_category(expense_to_category)
 
-    category_to_total = _get_total_expenses_per_category(category_to_expenses)
+    category_to_total = analysis.get_total_amount_per_category(category_to_expenses)
 
     # Print summary
     print("----------Expense summary by category----------")
@@ -75,7 +73,7 @@ def add_statement(
             print(f"    - {expense.payee_name}: {expense.amount}€")
 
 
-def main():
+def main() -> None:
     app()
 
 
@@ -86,17 +84,6 @@ def _prompt_for_category(expense: Transaction) -> str:
         f"to {expense.payee_name} on {date_str}"
     )
     return category
-
-
-def _get_total_expenses_per_category(
-    category_to_expenses: dict[str, list[Transaction]],
-) -> dict[str, float]:
-    category_to_total = {category: 0.0 for category in category_to_expenses}
-    for category, expenses in category_to_expenses.items():
-        for expense in expenses:
-            category_to_total[category] += expense.amount
-
-    return category_to_total
 
 
 # Functions below are currently unused.
