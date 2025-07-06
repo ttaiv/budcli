@@ -12,20 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 @app.command()
-def add_statement(file_path: str):
-    """
-    Import a bank statement CSV file to be processed.
-
-    Parameters
-    ----------
-    file : str
-        The path to the CSV file to import.
-    verbose : bool, optional
-        If True, enable verbose output. The default is False.
-    """
+def add_statement(
+    file_path: str,
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output."
+    ),
+) -> None:
+    """Categorize expenses from a bank statement CSV file."""
     logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(name)s - %(levelname)s - %(message)s",
+        level=logging.DEBUG if verbose else logging.WARNING,
+        format="%(levelname)s - %(message)s",
     )
 
     statement = BankStatement(
