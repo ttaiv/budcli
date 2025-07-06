@@ -64,22 +64,29 @@ def add_statement(
     # Group the expenses by category
     category_to_expenses = analysis.group_transactions_by_category(expense_to_category)
     category_to_total = analysis.get_total_amount_per_category(category_to_expenses)
+    # Sort categories by total expense descending
+    category_to_total_descending = sorted(
+        category_to_total.items(), key=lambda x: x[1], reverse=True
+    )
 
     # Print results.
     print("---------- Bank statement summary ----------")
     statement.print_summary()
 
     print("---------- Total expenses per category ----------")
-    for category, expenses in category_to_expenses.items():
-        print(f"{category}: {category_to_total[category]:.2f}€")
+    for category, total in category_to_total_descending:
+        print(f"{category}: {total:.2f}€")
 
     print("---------- Total expenses per payee ----------")
-    for payee, total in payee_to_total.items():
+    for payee, total in sorted(
+        payee_to_total.items(), key=lambda x: x[1], reverse=True
+    ):
         print(f"{payee}: {total:.2f}€")
 
     print("---------- Transactions in each category ----------")
-    for category, expenses in category_to_expenses.items():
-        print(f"{category}: {category_to_total[category]:.2f}€ total")
+    for category, total in category_to_total_descending:
+        expenses = category_to_expenses[category]
+        print(f"{category}: {total:.2f}€ total")
         for expense in expenses:
             print(f"    - {expense.payee_name}: {expense.amount}€")
 
