@@ -3,8 +3,18 @@ from dataclasses import dataclass
 from typing import Literal
 
 import pandas as pd
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+
+class StatementConfig(BaseModel):
+    """Configuration for parsing transactions from a bank statement."""
+
+    amount_col_name: str
+    payee_col_name: str
+    payer_col_name: str
+    date_col_name: str
 
 
 @dataclass(frozen=True)
@@ -24,15 +34,9 @@ class BankStatement:
     def __init__(
         self,
         csv_file_path: str,
-        amount_col_name: str,
-        payee_col_name: str,
-        payer_col_name: str,
-        date_col_name: str,
+        config: StatementConfig,
     ) -> None:
-        self._amount_col_name = amount_col_name
-        self._payee_col_name = payee_col_name
-        self._payer_col_name = payer_col_name
-        self._date_col_name = date_col_name
+        self._config = config
 
         # Read the statement to dataframe csv and preprocess it.
         logger.info(f"Reading bank statement from {csv_file_path}")
@@ -70,14 +74,14 @@ class BankStatement:
 
     def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
         """Preprocess the bank data dataframe."""
-        bank_data[self._date_col_name] = pd.to_datetime(
-            bank_data[self._date_col_name], format="%d.%m.%Y"
+        bank_data[self._config.date_col_name] = pd.to_datetime(
+            bank_data[self._config.date_col_name], format="%d.%m.%Y"
         )
-        bank_data[self._amount_col_name] = pd.to_numeric(
-            bank_data[self._amount_col_name].str.replace(",", ".")
+        bank_data[self._config.amount_col_name] = pd.to_numeric(
+            bank_data[self._config.amount_col_name].str.replace(",", ".")
         )
-        bank_data[self._payee_col_name] = (
-            bank_data[self._payee_col_name]
+        bank_data[self._config.payee_col_name] = (
+            bank_data[self._config.payee_col_name]
             .str.strip()  # Remove leading/trailing whitespace
             .str.replace("  ", " ")  # Replace double spaces with single space
             .str.lower()
@@ -85,8 +89,8 @@ class BankStatement:
             .str.replace("ö", "o")
             .str.title()  # Capitalize the first letter of each word
         )
-        bank_data[self._payer_col_name] = (
-            bank_data[self._payer_col_name]
+        bank_data[self._config.payer_col_name] = (
+            bank_data[self._config.payer_col_name]
             .str.strip()  # Remove leading/trailing whitespace
             .str.replace("  ", " ")  # Replace double spaces with single space
             .str.lower()
@@ -98,10 +102,10 @@ class BankStatement:
         # Only keep the relevant columns.
         bank_data = bank_data[
             [
-                self._payee_col_name,
-                self._payer_col_name,
-                self._amount_col_name,
-                self._date_col_name,
+                self._config.payee_col_name,
+                self._config.payer_col_name,
+                self._config.amount_col_name,
+                self._config.date_col_name,
             ]
         ]
 
@@ -114,15 +118,15 @@ class BankStatement:
         assert transaction_type in ["expense", "income", "all"]
         transactions = []
         for _, row in self._statement_df.iterrows():
-            amount = row[self._amount_col_name]
+            amount = row[self._config.amount_col_name]
             row_type = "income" if amount >= 0 else "expense"
             if transaction_type == "all" or row_type == transaction_type:
                 transactions.append(
                     Transaction(
-                        payee_name=row[self._payee_col_name],
-                        payer_name=row[self._payer_col_name],
+                        payee_name=row[self._config.payee_col_name],
+                        payer_name=row[self._config.payer_col_name],
                         amount=abs(amount),  # amount is always positive
-                        date=row[self._date_col_name],
+                        date=row[self._config.date_col_name],
                         transaction_type=row_type,
                     )
                 )

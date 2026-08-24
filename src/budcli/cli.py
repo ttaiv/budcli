@@ -3,7 +3,7 @@ import logging
 import typer
 
 import budcli.statement_analysis as analysis
-from budcli.bank_statement import BankStatement, Transaction
+from budcli.bank_statement import BankStatement, StatementConfig, Transaction
 from budcli.payee_registry import Payee, PayeeRegistry
 
 app = typer.Typer()
@@ -24,13 +24,13 @@ def add_statement(
         format="%(levelname)s - %(message)s",
     )
     # Load the bank statement and payee information.
-    statement = BankStatement(
-        file_path,
+    statement_config = StatementConfig(
         amount_col_name="Summa",
         payee_col_name="Saajan nimi",
         payer_col_name="Maksaja",
         date_col_name="Maksupäivä",
     )
+    statement = BankStatement(file_path, config=statement_config)
     payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
 
     statement_expenses = statement.get_transactions("expense")
