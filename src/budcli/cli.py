@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import typer
 
@@ -31,7 +32,10 @@ def add_statement(
         date_col_name="Maksupäivä",
     )
     statement = BankStatement(file_path, config=statement_config)
-    payee_registry = PayeeRegistry()  # Loads from file or creates a new one.
+    # Loads from file or creates a new one.
+    payee_registry = PayeeRegistry(
+        info_file_path=Path.home() / ".budcli" / "payee_info.json"
+    )
 
     statement_expenses = statement.get_transactions("expense")
     statement_income = statement.get_transactions("income")
