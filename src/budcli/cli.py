@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import typer
-from platformdirs import user_config_dir, user_data_dir
+from platformdirs import user_data_dir
 
 import budcli.statement_analysis as analysis
 from budcli.bank_statement import (
@@ -37,9 +37,7 @@ def add_statement(
     )
     data_dir = Path(user_data_dir(appname="budcli"))
     data_dir.mkdir(parents=True, exist_ok=True)
-    config_dir = Path(user_config_dir(appname="budcli"))
-    config_dir.mkdir(parents=True, exist_ok=True)
-    parsing_registry_file = config_dir / "statement_configs.json"
+    parsing_registry_file = data_dir / "statement_configs.json"
 
     if parsing_registry_file.exists():
         parsing_registry = StatementParsingRegistry.from_file(parsing_registry_file)
