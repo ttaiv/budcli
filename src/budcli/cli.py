@@ -249,8 +249,8 @@ def _prompt_for_statement_config() -> StatementParsingConfig:
             default="automatic",
             show_default=False,
         )
-        delimiter = typer.prompt(
-            "Enter the delimiter used in the CSV file", default=";"
+        csv_delimiter = typer.prompt(
+            "Enter the delimiter used (only relevant for CSV files)", default=";"
         )
         if len(payer_col_name.strip()) == 0:
             payer_col_name = None
@@ -262,7 +262,7 @@ def _prompt_for_statement_config() -> StatementParsingConfig:
         typer.echo(f"Payee col:   {payee_col_name}")
         typer.echo(f"Payer col:   {payer_col_name}")
         typer.echo(f"Date format: {date_format}")
-        typer.echo(f"Delimiter:   {delimiter}")
+        typer.echo(f"Delimiter:   {csv_delimiter}")
         typer.echo("-----------------------------\n")
 
         if typer.confirm("Is this configuration correct?"):
@@ -272,7 +272,7 @@ def _prompt_for_statement_config() -> StatementParsingConfig:
                 date_col_name=date_col_name,
                 payee_col_name=payee_col_name,
                 payer_col_name=payer_col_name,
-                delimiter=delimiter,
+                csv_delimiter=csv_delimiter,
                 date_format=date_format if date_format != "automatic" else None,
             )
         typer.echo("Let's try again...\n")

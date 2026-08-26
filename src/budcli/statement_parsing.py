@@ -16,7 +16,7 @@ class StatementParsingConfig(BaseModel):
     payee_col_name: str
     date_col_name: str
     payer_col_name: str | None = None
-    delimiter: str = ";"
+    csv_delimiter: str = ";"
     date_format: str | None = None
 
 
@@ -44,11 +44,16 @@ class StatementParsingRegistry(BaseModel):
 
 
 def parse_statement_to_df(
-    csv_file_path: Path, config: StatementParsingConfig
+    file_path: Path, config: StatementParsingConfig
 ) -> pd.DataFrame:
-    """Parse a bank statement CSV file into a pandas DataFrame."""
-    logger.info(f"Reading bank statement from {csv_file_path}")
-    df = pd.read_csv(csv_file_path, sep=config.delimiter)
+    """Parse a bank statement CSV/Excel file into a pandas DataFrame."""
+    logger.info(f"Reading bank statement from {file_path}")
+    if file_path.suffix == ".csv":
+        df = pd.read_csv(file_path, sep=config.csv_delimiter)
+    elif file_path.suffix == ".xlsx":
+        df = pd.read_excel(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_path.suffix}")
     logger.info("Preprocessing bank statement data")
     return _preprocess_bank_data_df(df, config)
 
