@@ -2,19 +2,26 @@ import logging
 from pathlib import Path
 
 import typer
+from platformdirs import user_config_dir, user_data_dir
 
 import budcli.statement_analysis as analysis
-from budcli.bank_statement import BankStatement, StatementConfig, Transaction
+from budcli.bank_statement import (
+    BankStatement,
+    Transaction,
+)
 from budcli.payee_registry import Payee, PayeeRegistry
+from budcli.statement_parsing import StatementParsingConfig, StatementParsingRegistry
 
 app = typer.Typer()
-
 logger = logging.getLogger(__name__)
 
 
 @app.command()
 def add_statement(
     file_path: str,
+    statement_config_name: str = typer.Option(
+        None, "--config-name", "-c", help="Name of the statement configuration to use."
+    ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output."
     ),
@@ -24,18 +31,50 @@ def add_statement(
         level=logging.DEBUG if verbose else logging.WARNING,
         format="%(levelname)s - %(message)s",
     )
-    # Load the bank statement and payee information.
-    statement_config = StatementConfig(
-        amount_col_name="Summa",
-        payee_col_name="Saajan nimi",
-        payer_col_name="Maksaja",
-        date_col_name="Maksupäivä",
-    )
+    data_dir = Path(user_data_dir(appname="budcli"))
+    data_dir.mkdir(parents=True, exist_ok=True)
+    config_dir = Path(user_config_dir(appname="budcli"))
+    config_dir.mkdir(parents=True, exist_ok=True)
+    parsing_registry_file = config_dir / "statement_configs.json"
+
+    if parsing_registry_file.exists():
+        parsing_registry = StatementParsingRegistry.from_file(parsing_registry_file)
+    else:
+        parsing_registry = StatementParsingRegistry()
+
+    if len(parsing_registry.configs) == 0:
+        typer.echo(
+            "No statement configurations found in the registry. "
+            "Prompting to create a new configuration."
+        )
+        new_config = _prompt_for_statement_config()
+        parsing_registry.configs[new_config.config_name] = new_config
+        statement_config_name = new_config.config_name
+
+    if statement_config_name is None:
+        typer.echo(
+            "Available statement configurations:\n"
+            + "\n".join(parsing_registry.configs.keys())
+        )
+        statement_config_name = typer.prompt(
+            "Enter the name of the statement configuration to use"
+        )
+    if not statement_config_name in parsing_registry.configs:
+        typer.echo(
+            f"Statement configuration '{statement_config_name}' not found in the registry. "
+            "Prompting to create a new configuration."
+        )
+        new_config = _prompt_for_statement_config()
+        parsing_registry.configs[new_config.config_name] = new_config
+        statement_config_name = new_config.config_name
+
+    statement_config = parsing_registry.configs[statement_config_name]
+    # Save registry to file in case it was updated.
+    parsing_registry.save_to_file(parsing_registry_file)
+
     statement = BankStatement(file_path, config=statement_config)
     # Loads from file or creates a new one.
-    payee_registry = PayeeRegistry(
-        info_file_path=Path.home() / ".budcli" / "payee_info.json"
-    )
+    payee_registry = PayeeRegistry(info_file_path=data_dir / "payee_info.json")
 
     statement_expenses = statement.get_transactions("expense")
     statement_income = statement.get_transactions("income")
@@ -120,9 +159,6 @@ def _prompt_for_category(expense: Transaction) -> str:
     return category
 
 
-# Functions below are currently unused.
-
-
 def _prompt_and_add_new_payees(
     new_payee_names: list[str], payee_registry: PayeeRegistry
 ) -> None:
@@ -189,3 +225,42 @@ def _prompt_category_multiple_choice(options: list[str]) -> str:
     else:
         typer.echo("Invalid choice, please try again.")
         return _prompt_category_multiple_choice(options)
+
+
+def _prompt_for_statement_config() -> StatementParsingConfig:
+    """Prompt the user for the column names of the bank statement."""
+    while True:
+        config_name = typer.prompt("Enter a name for this statement configuration")
+        amount_col_name = typer.prompt("Enter the column name for the amount")
+        payee_col_name = typer.prompt("Enter the column name for the payee")
+        date_col_name = typer.prompt("Enter the column name for the date")
+        payer_col_name = typer.prompt(
+            "Enter the column name for the payer (press Enter to skip)",
+            default="",
+            show_default=False,
+        )
+        delimiter = typer.prompt(
+            "Enter the delimiter used in the CSV file", default=";"
+        )
+        if len(payer_col_name.strip()) == 0:
+            payer_col_name = None
+
+        typer.echo("\n--- Configuration Summary ---")
+        typer.echo(f"Config name: {config_name}")
+        typer.echo(f"Amount col:  {amount_col_name}")
+        typer.echo(f"Date col:    {date_col_name}")
+        typer.echo(f"Payee col:   {payee_col_name}")
+        typer.echo(f"Payer col:   {payer_col_name}")
+        typer.echo(f"Delimiter:   {delimiter}")
+        typer.echo("-----------------------------\n")
+
+        if typer.confirm("Is this configuration correct?"):
+            return StatementParsingConfig(
+                config_name=config_name,
+                amount_col_name=amount_col_name,
+                date_col_name=date_col_name,
+                payee_col_name=payee_col_name,
+                payer_col_name=payer_col_name,
+                delimiter=delimiter,
+            )
+        typer.echo("Let's try again...\n")

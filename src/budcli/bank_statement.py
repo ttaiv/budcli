@@ -3,18 +3,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 import pandas as pd
-from pydantic import BaseModel
+
+from budcli.statement_parsing import StatementParsingConfig
 
 logger = logging.getLogger(__name__)
-
-
-class StatementConfig(BaseModel):
-    """Configuration for parsing transactions from a bank statement."""
-
-    amount_col_name: str
-    payee_col_name: str
-    payer_col_name: str
-    date_col_name: str
 
 
 @dataclass(frozen=True)
@@ -34,13 +26,13 @@ class BankStatement:
     def __init__(
         self,
         csv_file_path: str,
-        config: StatementConfig,
+        config: StatementParsingConfig,
     ) -> None:
         self._config = config
 
         # Read the statement to dataframe csv and preprocess it.
         logger.info(f"Reading bank statement from {csv_file_path}")
-        df = pd.read_csv(csv_file_path, sep=";")
+        df = pd.read_csv(csv_file_path, sep=self._config.delimiter)
         logger.info("Preprocessing bank statement data")
         self._statement_df = self._preprocess_bank_data_df(df)
 
@@ -98,16 +90,18 @@ class BankStatement:
             .str.replace("ö", "o")
             .str.title()  # Capitalize the first letter of each word
         )
-
         # Only keep the relevant columns.
-        bank_data = bank_data[
-            [
+        cols_to_keep = [
+            col_name
+            for col_name in [
                 self._config.payee_col_name,
                 self._config.payer_col_name,
                 self._config.amount_col_name,
                 self._config.date_col_name,
             ]
+            if col_name is not None
         ]
+        bank_data = bank_data[cols_to_keep]
 
         return bank_data
 
@@ -121,10 +115,15 @@ class BankStatement:
             amount = row[self._config.amount_col_name]
             row_type = "income" if amount >= 0 else "expense"
             if transaction_type == "all" or row_type == transaction_type:
+                payer_name = (
+                    row[self._config.payer_col_name]
+                    if self._config.payer_col_name is not None
+                    else "no payer"
+                )
                 transactions.append(
                     Transaction(
                         payee_name=row[self._config.payee_col_name],
-                        payer_name=row[self._config.payer_col_name],
+                        payer_name=payer_name,
                         amount=abs(amount),  # amount is always positive
                         date=row[self._config.date_col_name],
                         transaction_type=row_type,
