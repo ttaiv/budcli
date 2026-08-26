@@ -25,17 +25,11 @@ class BankStatement:
 
     def __init__(
         self,
-        csv_file_path: str,
+        statement_df: pd.DataFrame,
         config: StatementParsingConfig,
     ) -> None:
+        self._statement_df = statement_df
         self._config = config
-
-        # Read the statement to dataframe csv and preprocess it.
-        logger.info(f"Reading bank statement from {csv_file_path}")
-        df = pd.read_csv(csv_file_path, sep=self._config.delimiter)
-        logger.info("Preprocessing bank statement data")
-        self._statement_df = self._preprocess_bank_data_df(df)
-
         # Parse transactions into lists of objects.
         self._expenses: list[Transaction] = self._parse_transactions("expense")
         self._income: list[Transaction] = self._parse_transactions("income")
@@ -63,47 +57,6 @@ class BankStatement:
         print(f"Total expenses: {total_expenses:.2f}€")
         print(f"Total income: {total_income:.2f}€")
         print(f"Total transactions: {len(self._statement_df)}")
-
-    def _preprocess_bank_data_df(self, bank_data: pd.DataFrame) -> pd.DataFrame:
-        """Preprocess the bank data dataframe."""
-        bank_data[self._config.date_col_name] = pd.to_datetime(
-            bank_data[self._config.date_col_name], format="%d.%m.%Y"
-        )
-        bank_data[self._config.amount_col_name] = pd.to_numeric(
-            bank_data[self._config.amount_col_name].str.replace(",", ".")
-        )
-        bank_data[self._config.payee_col_name] = (
-            bank_data[self._config.payee_col_name]
-            .str.strip()  # Remove leading/trailing whitespace
-            .str.replace("  ", " ")  # Replace double spaces with single space
-            .str.lower()
-            .str.replace("ä", "a")
-            .str.replace("ö", "o")
-            .str.title()  # Capitalize the first letter of each word
-        )
-        bank_data[self._config.payer_col_name] = (
-            bank_data[self._config.payer_col_name]
-            .str.strip()  # Remove leading/trailing whitespace
-            .str.replace("  ", " ")  # Replace double spaces with single space
-            .str.lower()
-            .str.replace("ä", "a")
-            .str.replace("ö", "o")
-            .str.title()  # Capitalize the first letter of each word
-        )
-        # Only keep the relevant columns.
-        cols_to_keep = [
-            col_name
-            for col_name in [
-                self._config.payee_col_name,
-                self._config.payer_col_name,
-                self._config.amount_col_name,
-                self._config.date_col_name,
-            ]
-            if col_name is not None
-        ]
-        bank_data = bank_data[cols_to_keep]
-
-        return bank_data
 
     def _parse_transactions(
         self, transaction_type: Literal["expense", "income", "all"] = "all"

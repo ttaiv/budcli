@@ -10,7 +10,11 @@ from budcli.bank_statement import (
     Transaction,
 )
 from budcli.payee_registry import Payee, PayeeRegistry
-from budcli.statement_parsing import StatementParsingConfig, StatementParsingRegistry
+from budcli.statement_parsing import (
+    StatementParsingConfig,
+    StatementParsingRegistry,
+    parse_statement_to_df,
+)
 
 app = typer.Typer()
 logger = logging.getLogger(__name__)
@@ -72,7 +76,8 @@ def add_statement(
     # Save registry to file in case it was updated.
     parsing_registry.save_to_file(parsing_registry_file)
 
-    statement = BankStatement(file_path, config=statement_config)
+    statement_df = parse_statement_to_df(Path(file_path), config=statement_config)
+    statement = BankStatement(statement_df=statement_df, config=statement_config)
     # Loads from file or creates a new one.
     payee_registry = PayeeRegistry(info_file_path=data_dir / "payee_info.json")
 
