@@ -21,14 +21,14 @@ class Payee(ABC):
 class PayeeRegistry(ABC):
     """Manages information about payees."""
 
-    def __init__(self) -> None:
+    def __init__(self, info_file_path: Path) -> None:
         # Set path to to file that will be used to load/save payee information.
-        self.info_file_path = Path.home() / ".budcli" / "payee_info.json"
-        logger.info(f"Looking for payee info file from {self.info_file_path}")
-        if self.info_file_path.exists():
-            logger.info(f"Payee info file found at {self.info_file_path}")
+        self._info_file_path = info_file_path
+        logger.info(f"Looking for payee info file from {self._info_file_path}")
+        if self._info_file_path.exists():
+            logger.info(f"Payee info file found at {self._info_file_path}")
             self._payee_name_to_payee: dict[str, Payee] = self._load_from_file(
-                self.info_file_path
+                self._info_file_path
             )
         else:
             logger.info("Payee info file not found, creating a new registry.")
@@ -74,12 +74,12 @@ class PayeeRegistry(ABC):
 
     def save_to_file(self) -> None:
         """Overwrite the payee info file with the current registry state."""
-        logger.info(f"Saving payees info to {self.info_file_path}")
+        logger.info(f"Saving payees info to {self._info_file_path}")
         payees_info_list = [
             asdict(payee) for payee in self._payee_name_to_payee.values()
         ]
-        self.info_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.info_file_path, "w") as f:
+        self._info_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self._info_file_path, "w") as f:
             json.dump(payees_info_list, f, indent=4)
 
     def _load_from_file(self, payee_info_file: Path) -> dict[str, Payee]:
