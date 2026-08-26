@@ -17,6 +17,7 @@ class StatementParsingConfig(BaseModel):
     date_col_name: str
     payer_col_name: str | None = None
     delimiter: str = ";"
+    date_format: str | None = None
 
 
 class StatementParsingRegistry(BaseModel):
@@ -57,7 +58,7 @@ def _preprocess_bank_data_df(
 ) -> pd.DataFrame:
     """Preprocess the bank data dataframe."""
     bank_data_df[config.date_col_name] = pd.to_datetime(
-        bank_data_df[config.date_col_name], format="%d.%m.%Y"
+        bank_data_df[config.date_col_name], format=config.date_format
     )
     bank_data_df[config.amount_col_name] = pd.to_numeric(
         bank_data_df[config.amount_col_name].str.replace(",", ".")
