@@ -65,9 +65,11 @@ def _preprocess_bank_data_df(
     bank_data_df[config.date_col_name] = pd.to_datetime(
         bank_data_df[config.date_col_name], format=config.date_format
     )
-    bank_data_df[config.amount_col_name] = pd.to_numeric(
-        bank_data_df[config.amount_col_name].str.replace(",", ".")
-    )
+    amount_series = bank_data_df[config.amount_col_name]
+    if not pd.api.types.is_numeric_dtype(amount_series):
+        bank_data_df[config.amount_col_name] = pd.to_numeric(
+            amount_series.str.replace(",", ".")
+        )
     bank_data_df[config.payee_col_name] = (
         bank_data_df[config.payee_col_name]
         .str.strip()  # Remove leading/trailing whitespace
@@ -77,15 +79,16 @@ def _preprocess_bank_data_df(
         .str.replace("ö", "o")
         .str.title()  # Capitalize the first letter of each word
     )
-    bank_data_df[config.payer_col_name] = (
-        bank_data_df[config.payer_col_name]
-        .str.strip()  # Remove leading/trailing whitespace
-        .str.replace("  ", " ")  # Replace double spaces with single space
-        .str.lower()
-        .str.replace("ä", "a")
-        .str.replace("ö", "o")
-        .str.title()  # Capitalize the first letter of each word
-    )
+    if config.payer_col_name is not None:
+        bank_data_df[config.payer_col_name] = (
+            bank_data_df[config.payer_col_name]
+            .str.strip()  # Remove leading/trailing whitespace
+            .str.replace("  ", " ")  # Replace double spaces with single space
+            .str.lower()
+            .str.replace("ä", "a")
+            .str.replace("ö", "o")
+            .str.title()  # Capitalize the first letter of each word
+        )
     # Only keep the relevant columns.
     cols_to_keep = [
         col_name
