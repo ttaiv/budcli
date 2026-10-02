@@ -146,7 +146,7 @@ def add_statement(
             expenses = category_to_expenses[category]
             print(f"{category}: {total:.2f}€ total")
             for expense in expenses:
-                print(f"    - {expense.payee_name}: {expense.amount}€")
+                print(f"    - {expense.payee_name}: {expense.amount:.2f}€")
 
 
 def main() -> None:
