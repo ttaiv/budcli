@@ -61,7 +61,7 @@ def add_statement(
         statement_config_name = typer.prompt(
             "Enter the name of the statement configuration to use"
         )
-    if not statement_config_name in parsing_registry.configs:
+    if statement_config_name not in parsing_registry.configs:
         typer.echo(
             f"Statement configuration '{statement_config_name}' not found in the registry. "
             "Prompting to create a new configuration."
