@@ -89,7 +89,7 @@ class PayeeRegistry:
             )
 
         logger.info(f"Loading payee info from {payee_info_file}")
-        with open(payee_info_file, "r") as f:
+        with open(payee_info_file) as f:
             payees_info_list: list[dict] = json.load(f)
 
         payees = {payee["name"]: Payee(**payee) for payee in payees_info_list}

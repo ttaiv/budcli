@@ -33,6 +33,7 @@ class StatementParsingRegistry(BaseModel):
                 f"Statement parsing registry file not found at {file_path}. "
                 "Creating a new empty registry.",
                 category=RuntimeWarning,
+                stacklevel=2,
             )
             return cls()
         file_text = file_path.read_text()
