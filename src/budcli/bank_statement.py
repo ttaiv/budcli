@@ -59,15 +59,15 @@ class BankStatement:
         print(f"Total transactions: {len(self._statement_df)}")
 
     def _parse_transactions(
-        self, transaction_type: Literal["expense", "income", "all"] = "all"
+        self, transaction_type: Literal["expense", "income"]
     ) -> list[Transaction]:
-        """Parse transactions from the pandas dataframe."""
-        assert transaction_type in ["expense", "income", "all"]
+        """Parse transactions of the given type from the pandas dataframe."""
+        assert transaction_type in ["expense", "income"]
         transactions = []
         for _, row in self._statement_df.iterrows():
             amount = row[self._config.amount_col_name]
             row_type = "income" if amount >= 0 else "expense"
-            if transaction_type == "all" or row_type == transaction_type:
+            if row_type == transaction_type:
                 payer_name = (
                     row[self._config.payer_col_name]
                     if self._config.payer_col_name is not None
