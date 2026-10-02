@@ -26,3 +26,17 @@ build-backend = "hatchling.build"
 
 [tool.pyright]
 typeCheckingMode = "standard"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]  # Line length is handled by the formatter.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
