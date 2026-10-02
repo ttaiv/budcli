@@ -10,3 +10,9 @@ wheels/
 .venv
 
 prototype/
+# Personal financial data: never commit real bank statements or app data.
+*.csv
+*.xlsx
+payee_info.json
+statement_configs.json
+!examples/*.csv
