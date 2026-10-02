@@ -3,6 +3,8 @@ name = "budcli"
 version = "0.1.0"
 description = "Eats csv bank statements, categorizes transactions, and tracks your budget."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Teemu Taivainen", email = "teemu.taivainen@hotmail.fi" }
 ]
