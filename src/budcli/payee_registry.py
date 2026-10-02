@@ -1,6 +1,5 @@
 import json
 import logging
-from abc import ABC
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -8,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Payee(ABC):
+class Payee:
     """Represent a payee in the bank statement."""
 
     name: str
@@ -18,7 +17,7 @@ class Payee(ABC):
     ask_for_category: bool = False
 
 
-class PayeeRegistry(ABC):
+class PayeeRegistry:
     """Manages information about payees."""
 
     def __init__(self, info_file_path: Path) -> None:
