@@ -101,6 +101,6 @@ def _preprocess_bank_data_df(
         ]
         if col_name is not None
     ]
-    bank_data_df = bank_data_df[cols_to_keep]
+    bank_data_df = bank_data_df.filter(items=cols_to_keep)
 
     return bank_data_df
