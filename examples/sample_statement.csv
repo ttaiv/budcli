@@ -1,0 +1,14 @@
+Date;Amount;Payer;Payee
+01.03.2025;2450,00;Example Employer Oy;Jane Doe
+02.03.2025;-850,00;Jane Doe;Example Housing Oy
+03.03.2025;-42,37;Jane Doe;K-Market Keskusta
+05.03.2025;-10,99;Jane Doe;Spotify
+07.03.2025;-61,12;Jane Doe;Prisma  Kaleva
+09.03.2025;-3,20;Jane Doe;HSL Mobiili
+12.03.2025;-24,90;Jane Doe;Ravintola Esimerkki
+14.03.2025;-38,45;Jane Doe;k-market keskusta
+15.03.2025;150,00;John Doe;Jane Doe
+18.03.2025;-3,20;Jane Doe;HSL Mobiili
+21.03.2025;-55,80;Jane Doe;Prisma Kaleva
+25.03.2025;-29,00;Jane Doe;Example Gym Oy
+28.03.2025;-10,99;Jane Doe;Spotify

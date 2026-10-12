@@ -59,26 +59,32 @@ class BankStatement:
         print(f"Total transactions: {len(self._statement_df)}")
 
     def _parse_transactions(
-        self, transaction_type: Literal["expense", "income", "all"] = "all"
+        self, transaction_type: Literal["expense", "income"]
     ) -> list[Transaction]:
-        """Parse transactions from the pandas dataframe."""
-        assert transaction_type in ["expense", "income", "all"]
+        """Parse transactions of the given type from the pandas dataframe."""
+        assert transaction_type in ["expense", "income"]
+        df = self._statement_df
+        amounts: list[float] = df[self._config.amount_col_name].tolist()
+        payee_names: list[str] = df[self._config.payee_col_name].tolist()
+        dates: list[pd.Timestamp] = df[self._config.date_col_name].tolist()
+        payer_names: list[str] = (
+            df[self._config.payer_col_name].tolist()
+            if self._config.payer_col_name is not None
+            else ["no payer"] * len(df)
+        )
+
         transactions = []
-        for _, row in self._statement_df.iterrows():
-            amount = row[self._config.amount_col_name]
+        for amount, payee_name, payer_name, date in zip(
+            amounts, payee_names, payer_names, dates, strict=True
+        ):
             row_type = "income" if amount >= 0 else "expense"
-            if transaction_type == "all" or row_type == transaction_type:
-                payer_name = (
-                    row[self._config.payer_col_name]
-                    if self._config.payer_col_name is not None
-                    else "no payer"
-                )
+            if row_type == transaction_type:
                 transactions.append(
                     Transaction(
-                        payee_name=row[self._config.payee_col_name],
+                        payee_name=payee_name,
                         payer_name=payer_name,
                         amount=abs(amount),  # amount is always positive
-                        date=row[self._config.date_col_name],
+                        date=date,
                         transaction_type=row_type,
                     )
                 )

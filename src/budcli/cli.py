@@ -61,7 +61,7 @@ def add_statement(
         statement_config_name = typer.prompt(
             "Enter the name of the statement configuration to use"
         )
-    if not statement_config_name in parsing_registry.configs:
+    if statement_config_name not in parsing_registry.configs:
         typer.echo(
             f"Statement configuration '{statement_config_name}' not found in the registry. "
             "Prompting to create a new configuration."
@@ -146,7 +146,7 @@ def add_statement(
             expenses = category_to_expenses[category]
             print(f"{category}: {total:.2f}€ total")
             for expense in expenses:
-                print(f"    - {expense.payee_name}: {expense.amount}€")
+                print(f"    - {expense.payee_name}: {expense.amount:.2f}€")
 
 
 def main() -> None:
@@ -160,74 +160,6 @@ def _prompt_for_category(expense: Transaction) -> str:
         f"to {expense.payee_name} on {date_str}"
     )
     return category
-
-
-def _prompt_and_add_new_payees(
-    new_payee_names: list[str], payee_registry: PayeeRegistry
-) -> None:
-    """Prompt the user for categories of new payees and add them to the registry."""
-    for payee_name in new_payee_names:
-        category = typer.prompt(f"What is the category for new payee {payee_name}?")
-        ask_in_future = typer.confirm(
-            f"Do you want to manually categorize '{payee_name}' in the future?",
-            default=False,
-        )
-        payee = Payee(
-            payee_name, primary_category=category, ask_for_category=ask_in_future
-        )
-        payee_registry.add_payee(payee)
-
-
-def _confirm_and_update_payee_categories(
-    payees_to_confirm: list[Payee], payee_registry: PayeeRegistry
-) -> None:
-    """
-    Confirm the categories of a payees and update the registry."""
-    for payee in payees_to_confirm:
-        category_correct = typer.confirm(
-            f"Is the category '{payee.primary_category}' for payee '{payee.name}' correct?",
-            default=True,
-        )
-        if category_correct:
-            # No need to update the registry.
-            continue
-        # Allow user to choose a category from existing ones or add a new one.
-        if payee.other_categories:
-            typer.echo(f"Choose a category for payee {payee.name}")
-            new_category = _prompt_category_multiple_choice(
-                options=payee.other_categories
-            )
-        else:
-            new_category = typer.prompt(
-                f"Enter the new category for payee {payee.name}"
-            )
-        payee_registry.update_payee(
-            Payee(
-                payee.name,
-                primary_category=new_category,
-                other_categories=list(set(payee.other_categories) | {new_category}),
-                ask_for_category=payee.ask_for_category,
-            )
-        )
-
-
-def _prompt_category_multiple_choice(options: list[str]) -> str:
-    """Prompt the user to choose a category from a list of options or add a new one."""
-    option_count = len(options) + 1  # +1 for the option to add a new category
-    for i, choice in enumerate(options, start=1):
-        typer.echo(f"{i}) {choice}")
-    typer.echo(f"{option_count}) Add a new category")
-
-    user_choice = typer.prompt(f"Enter the number of your choice (1-{option_count})")
-    if user_choice.isdigit() and 1 <= int(user_choice) <= option_count:
-        if int(user_choice) == option_count:
-            new_category = typer.prompt("Enter the new category name")
-            return new_category
-        else:
-            return options[int(user_choice) - 1]
-    else:
-        typer.echo("Invalid choice, please try again.")
-        return _prompt_category_multiple_choice(options)
 
 
 def _prompt_for_statement_config() -> StatementParsingConfig:
