@@ -73,7 +73,7 @@ K-Market Keskusta   :      80.82€
 
 Statement configurations (`statement_configs.json`) and remembered payee
 categories (`payee_info.json`) live in your platform's user data directory,
-for example `~/.local/share/budcli/` on Linux. Your bank statements are only
+for example `~/.local/share/budcli/` on Linux. Bank statements are only
 read and are never copied anywhere.
 
 ## Project structure
